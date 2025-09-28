@@ -40,7 +40,7 @@ As entregas incluem:
 
 ### Diagrama de Casos de Uso
 
-![Diagrama de Casos de Uso](./imagens/casos-de-uso.png)
+<img width="776" height="1096" alt="image" src="https://github.com/user-attachments/assets/4e7b1e04-1492-487a-8174-f24c15e5d949" />
 
 ---
 
