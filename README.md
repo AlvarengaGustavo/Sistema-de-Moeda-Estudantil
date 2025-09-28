@@ -46,7 +46,7 @@ As entregas incluem:
 
 ### Diagrama de Classes
 
-![Diagrama de Classes](./imagens/diagrama-classes.png)
+<img width="1727" height="1014" alt="image" src="https://github.com/user-attachments/assets/78d73ce7-c55d-4958-87aa-4b7d6e1ce2e5" />
 
 ---
 
