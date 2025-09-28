@@ -59,7 +59,8 @@ As entregas incluem:
 
 ### Modelo ER
 
-![Modelo ER](./imagens/modelo-er.png)
+<img width="640" height="894" alt="image" src="https://github.com/user-attachments/assets/f251f6bb-dada-4fd1-b336-e906d50a4b1c" />
+
 
 ---
 
