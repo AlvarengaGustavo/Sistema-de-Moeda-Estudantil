@@ -52,7 +52,8 @@ As entregas incluem:
 
 ### Diagrama de Componentes
 
-![Diagrama de Componentes](./imagens/diagrama-componentes.png)
+<img width="2203" height="1127" alt="image" src="https://github.com/user-attachments/assets/ccd9852e-626c-45a8-82a6-a036a2a45f45" />
+
 
 ---
 
