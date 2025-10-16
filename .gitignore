@@ -1,0 +1,52 @@
+# Java / Spring Boot
+backend/target/
+*.class
+*.jar
+*.war
+*.iml
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.db
+*.h2.db
+*.mv.db
+*.sqlite
+*.DS_Store
+backend/.idea/
+backend/.vscode/
+backend/.settings/
+backend/.classpath
+backend/.project
+backend/.env
+backend/.mvn/
+
+# Node / React
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.DS_Store
+frontend/.idea/
+frontend/.vscode/
+frontend/.eslintcache
+frontend/.parcel-cache/
+
+# General
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.DS_Store
+.env
+.vscode/
+.idea/
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Others
+*.orig
+*.rej
