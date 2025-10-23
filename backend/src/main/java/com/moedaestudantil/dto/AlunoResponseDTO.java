@@ -1,6 +1,21 @@
 package com.moedaestudantil.dto;
 
+// 1. Importações do Lombok
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+// 2. Importação da sua entidade (ajuste o pacote se necessário)
+import com.moedaestudantil.model.Aluno; 
+
+// 3. Anotações do Lombok
+@Getter
+@Setter
+@NoArgsConstructor // Cria o construtor padrão: public AlunoResponseDTO() {}
+@AllArgsConstructor // Cria o construtor com todos os campos
 public class AlunoResponseDTO {
+
     private Long id;
     private String nome;
     private String email;
@@ -10,80 +25,16 @@ public class AlunoResponseDTO {
     private String instituicaoDeEnsino;
     private String curso;
 
-    public AlunoResponseDTO() {}
-
-    public AlunoResponseDTO(Long id, String nome, String email, String cpf, String rg, String endereco, String instituicaoDeEnsino, String curso) {
-        this.id = id;
-        this.nome = nome;
-        this.email = email;
-        this.cpf = cpf;
-        this.rg = rg;
-        this.endereco = endereco;
-        this.instituicaoDeEnsino = instituicaoDeEnsino;
-        this.curso = curso;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getCpf() {
-        return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
-    }
-
-    public String getRg() {
-        return rg;
-    }
-
-    public void setRg(String rg) {
-        this.rg = rg;
-    }
-
-    public String getEndereco() {
-        return endereco;
-    }
-
-    public void setEndereco(String endereco) {
-        this.endereco = endereco;
-    }
-
-    public String getInstituicaoDeEnsino() {
-        return instituicaoDeEnsino;
-    }
-
-    public void setInstituicaoDeEnsino(String instituicaoDeEnsino) {
-        this.instituicaoDeEnsino = instituicaoDeEnsino;
-    }
-
-    public String getCurso() {
-        return curso;
-    }
-
-    public void setCurso(String curso) {
-        this.curso = curso;
+    // 4. Construtor de mapeamento (o que você pediu)
+    //    Usado para converter a Entidade (Aluno) para este DTO
+    public AlunoResponseDTO(Aluno aluno) {
+        this.id = aluno.getId();
+        this.nome = aluno.getNome();
+        this.email = aluno.getEmail();
+        this.cpf = aluno.getCpf();
+        this.rg = aluno.getRg();
+        this.endereco = aluno.getEndereco();
+        this.instituicaoDeEnsino = aluno.getInstituicaoDeEnsino();
+        this.curso = aluno.getCurso();
     }
 }

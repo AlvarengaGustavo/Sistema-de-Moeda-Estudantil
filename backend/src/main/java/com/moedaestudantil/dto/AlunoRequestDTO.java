@@ -13,6 +13,7 @@ public class AlunoRequestDTO {
 
     @NotBlank(message = "Email é obrigatório")
     @Email(message = "Email deve ser válido")
+    private String email;
 
     private String senha;
 

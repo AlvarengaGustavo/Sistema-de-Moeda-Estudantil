@@ -31,7 +31,7 @@ export default function GerenciarAlunos() {
     setLoading(true);
     try {
       const res = await api.get('/alunos');
-      setAlunos(res.data);
+      setAlunos(res.data.content);
     } catch (err) {
       toast.error('Erro ao carregar alunos');
     }
@@ -72,7 +72,7 @@ export default function GerenciarAlunos() {
   const handleFormSubmit = async (form) => {
     try {
       if (editAluno) {
-        await api.put(`/alunos/${editAluno.id}`, form);
+        await api.put(`/alunos/${editAluno.id}`, form); 
         toast.success('Aluno atualizado com sucesso!');
       } else {
         await api.post('/alunos', form);

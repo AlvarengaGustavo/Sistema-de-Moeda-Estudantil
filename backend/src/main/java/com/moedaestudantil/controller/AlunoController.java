@@ -3,13 +3,14 @@ package com.moedaestudantil.controller;
 import com.moedaestudantil.dto.AlunoRequestDTO;
 import com.moedaestudantil.dto.AlunoResponseDTO;
 import com.moedaestudantil.service.AlunoService;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/alunos")
@@ -31,7 +32,7 @@ public class AlunoController {
     @GetMapping
     public ResponseEntity<Page<AlunoResponseDTO>> listar(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "40") int size,
             @RequestParam(defaultValue = "nome") String sort) {
         return ResponseEntity.ok(alunoService.buscarTodosPaginado(page, size, sort));
     }
