@@ -3,7 +3,9 @@ package com.moedaestudantil.service;
 import com.moedaestudantil.dto.AlunoRequestDTO;
 import com.moedaestudantil.dto.AlunoResponseDTO;
 import com.moedaestudantil.model.Aluno;
+import com.moedaestudantil.model.Instituicao;
 import com.moedaestudantil.repository.AlunoRepository;
+import com.moedaestudantil.repository.InstituicaoRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,7 +14,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 
 import java.util.List;
 import java.util.Optional;
@@ -23,10 +24,13 @@ public class AlunoService {
 
     private final AlunoRepository alunoRepository;
     private final PasswordEncoder passwordEncoder;
+    private final InstituicaoRepository instituicaoRepository;
 
-    public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder) {
+    public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder,
+            InstituicaoRepository instituicaoRepository) {
         this.alunoRepository = alunoRepository;
         this.passwordEncoder = passwordEncoder;
+        this.instituicaoRepository = instituicaoRepository;
     }
 
     public AlunoResponseDTO criarAluno(AlunoRequestDTO dto) {
@@ -52,7 +56,12 @@ public class AlunoService {
 
         // RG validation removed by request (kept as optional free-text)
         String senhaCriptografada = passwordEncoder.encode(dto.getSenha());
-        Aluno aluno = new Aluno(dto.getNome(), dto.getEmail(), senhaCriptografada, dto.getCpf(), dto.getRg(), dto.getEndereco(), dto.getInstituicaoDeEnsino(), dto.getCurso());
+        Aluno aluno = new Aluno(dto.getNome(), dto.getEmail(), senhaCriptografada, dto.getCpf(), dto.getRg(),
+                dto.getEndereco(), dto.getInstituicaoDeEnsino(), dto.getCurso());
+        // resolver instituição por nome (pré-cadastrada)
+        Instituicao inst = instituicaoRepository.findByNome(dto.getInstituicaoDeEnsino())
+                .orElseThrow(() -> new IllegalArgumentException("Instituição não encontrada"));
+        aluno.setInstituicao(inst);
         Aluno salvo = alunoRepository.save(aluno);
         return toResponseDTO(salvo);
     }
@@ -62,12 +71,14 @@ public class AlunoService {
     }
 
     public AlunoResponseDTO buscarPorId(Long id) {
-        Aluno aluno = alunoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+        Aluno aluno = alunoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
         return toResponseDTO(aluno);
     }
 
     public AlunoResponseDTO atualizar(Long id, AlunoRequestDTO dto) {
-        Aluno existente = alunoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+        Aluno existente = alunoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
 
         // if changing email/CPF, check duplication
         if (!existente.getEmail().equals(dto.getEmail())) {
@@ -96,7 +107,9 @@ public class AlunoService {
         // RG validation removed by request (kept as optional free-text)
         existente.setRg(dto.getRg());
         existente.setEndereco(dto.getEndereco());
-        existente.setInstituicaoDeEnsino(dto.getInstituicaoDeEnsino());
+        Instituicao inst = instituicaoRepository.findByNome(dto.getInstituicaoDeEnsino())
+                .orElseThrow(() -> new IllegalArgumentException("Instituição não encontrada"));
+        existente.setInstituicao(inst);
         existente.setCurso(dto.getCurso());
 
         Aluno atualizado = alunoRepository.save(existente);

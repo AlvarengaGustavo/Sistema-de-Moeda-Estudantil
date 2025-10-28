@@ -4,8 +4,8 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "alunos", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"email"}),
-        @UniqueConstraint(columnNames = {"cpf"})
+        @UniqueConstraint(columnNames = { "email" }),
+        @UniqueConstraint(columnNames = { "cpf" })
 })
 public class Aluno {
 
@@ -29,22 +29,28 @@ public class Aluno {
 
     private String endereco;
 
-    @Column(nullable = false)
-    private String instituicaoDeEnsino;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "instituicao_id")
+    private Instituicao instituicao;
 
     @Column(nullable = false)
     private String curso;
 
-    public Aluno() {}
+    // saldo atual de moedas do aluno (recebimentos - trocas)
+    @Column(nullable = false)
+    private Integer saldoMoedas = 0;
 
-    public Aluno(String nome, String email, String senha, String cpf, String rg, String endereco, String instituicaoDeEnsino, String curso) {
+    public Aluno() {
+    }
+
+    public Aluno(String nome, String email, String senha, String cpf, String rg, String endereco,
+            String instituicaoDeEnsino, String curso) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
         this.cpf = cpf;
         this.rg = rg;
         this.endereco = endereco;
-        this.instituicaoDeEnsino = instituicaoDeEnsino;
         this.curso = curso;
     }
 
@@ -104,12 +110,12 @@ public class Aluno {
         this.endereco = endereco;
     }
 
-    public String getInstituicaoDeEnsino() {
-        return instituicaoDeEnsino;
+    public Instituicao getInstituicao() {
+        return instituicao;
     }
 
-    public void setInstituicaoDeEnsino(String instituicaoDeEnsino) {
-        this.instituicaoDeEnsino = instituicaoDeEnsino;
+    public void setInstituicao(Instituicao instituicao) {
+        this.instituicao = instituicao;
     }
 
     public String getCurso() {
@@ -118,5 +124,13 @@ public class Aluno {
 
     public void setCurso(String curso) {
         this.curso = curso;
+    }
+
+    public Integer getSaldoMoedas() {
+        return saldoMoedas;
+    }
+
+    public void setSaldoMoedas(Integer saldoMoedas) {
+        this.saldoMoedas = saldoMoedas;
     }
 }

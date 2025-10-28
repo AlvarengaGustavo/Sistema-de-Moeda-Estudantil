@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 // 2. Importação da sua entidade (ajuste o pacote se necessário)
-import com.moedaestudantil.model.Aluno; 
+import com.moedaestudantil.model.Aluno;
 
 // 3. Anotações do Lombok
 @Getter
@@ -26,7 +26,7 @@ public class AlunoResponseDTO {
     private String curso;
 
     // 4. Construtor de mapeamento (o que você pediu)
-    //    Usado para converter a Entidade (Aluno) para este DTO
+    // Usado para converter a Entidade (Aluno) para este DTO
     public AlunoResponseDTO(Aluno aluno) {
         this.id = aluno.getId();
         this.nome = aluno.getNome();
@@ -34,7 +34,7 @@ public class AlunoResponseDTO {
         this.cpf = aluno.getCpf();
         this.rg = aluno.getRg();
         this.endereco = aluno.getEndereco();
-        this.instituicaoDeEnsino = aluno.getInstituicaoDeEnsino();
+        this.instituicaoDeEnsino = aluno.getInstituicao() != null ? aluno.getInstituicao().getNome() : null;
         this.curso = aluno.getCurso();
     }
 }
