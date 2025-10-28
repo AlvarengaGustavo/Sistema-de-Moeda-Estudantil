@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import {
   Box,
   Button,
   Paper,
-  TextField,
   Typography,
   Table,
   TableHead,
@@ -13,10 +12,26 @@ import {
   TableCell,
   TableBody,
 } from "@mui/material";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 
 export default function ExtratoProfessor() {
   const [professorId, setProfessorId] = useState("");
   const [extrato, setExtrato] = useState(null);
+  const [professores, setProfessores] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/professores");
+        setProfessores(res.data || []);
+      } catch (e) {
+        toast.error("Erro ao carregar professores");
+      }
+    })();
+  }, []);
 
   const carregar = async () => {
     if (!professorId) {
@@ -37,12 +52,25 @@ export default function ExtratoProfessor() {
         Extrato do Professor
       </Typography>
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-        <TextField
-          label="ID do Professor"
-          value={professorId}
-          onChange={(e) => setProfessorId(e.target.value)}
-        />
-        <Button variant="contained" onClick={carregar}>
+        <FormControl sx={{ minWidth: 280 }}>
+          <InputLabel id="prof-label">Professor</InputLabel>
+          <Select
+            labelId="prof-label"
+            label="Professor"
+            value={professorId}
+            onChange={(e) => setProfessorId(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>Selecione</em>
+            </MenuItem>
+            {professores.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.nome} (saldo: {p.saldoMoedas})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button variant="contained" onClick={carregar} disabled={!professorId}>
           Carregar
         </Button>
       </Box>
