@@ -11,9 +11,13 @@ export default function NavigationBar() {
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Sistema de Moeda Estudantil
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
+            <img
+              src="/logo.png"
+              alt="Sistema de moedas"
+              style={{ maxHeight: 40 }}
+            />
+          </Box>
           <Button color="inherit" component={RouterLink} to="/alunos">
             Alunos
           </Button>
