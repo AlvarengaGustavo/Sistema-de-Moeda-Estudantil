@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import NavigationBar from "./components/NavigationBar";
 import GerenciarAlunos from "./pages/GerenciarAlunos";
 import GerenciarEmpresas from "./pages/GerenciarEmpresas";
+import GerenciarVantagens from "./pages/GerenciarVantagens";
 import EnviarMoedas from "./pages/EnviarMoedas";
 import ExtratoAluno from "./pages/ExtratoAluno";
 import ExtratoProfessor from "./pages/ExtratoProfessor";
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/alunos" element={<GerenciarAlunos />} />
           <Route path="/empresas" element={<GerenciarEmpresas />} />
+          <Route path="/vantagens" element={<GerenciarVantagens />} />
           <Route path="/enviar-moedas" element={<EnviarMoedas />} />
           <Route path="/extrato-aluno" element={<ExtratoAluno />} />
           <Route path="/extrato-professor" element={<ExtratoProfessor />} />

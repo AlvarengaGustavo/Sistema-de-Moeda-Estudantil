@@ -20,6 +20,9 @@ export default function NavigationBar() {
           <Button color="inherit" component={RouterLink} to="/empresas">
             Empresas
           </Button>
+          <Button color="inherit" component={RouterLink} to="/vantagens">
+            Vantagens
+          </Button>
           <Button color="inherit" component={RouterLink} to="/enviar-moedas">
             Enviar Moedas
           </Button>
