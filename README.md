@@ -62,6 +62,15 @@ As entregas incluem:
 
 ---
 
+### Diagramas de Sequência
+
+![WhatsApp Image 2025-11-06 at 16 44 05(1)](https://github.com/user-attachments/assets/d9b2a965-d27a-4e91-b140-f834ddae21aa)
+
+
+![WhatsApp Image 2025-11-06 at 16 44 05](https://github.com/user-attachments/assets/f7aebe73-27c0-408b-91b8-fa56455cb3cc)
+
+---
+
 ## Execução
 
 Back-end (Spring Boot): porta 8080
