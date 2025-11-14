@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
-import EmpresaForm from '../components/EmpresaForm';
+import api from '../../services/api';
+import EmpresaForm from '../../components/EmpresaForm';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';

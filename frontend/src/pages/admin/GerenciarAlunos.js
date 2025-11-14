@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
-import AlunoForm from '../components/AlunoForm';
-import LoadingError from '../components/LoadingError';
+import api from '../../services/api';
+import AlunoForm from '../../components/AlunoForm';
+import LoadingError from '../../components/LoadingError';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -71,6 +71,7 @@ export default function GerenciarAlunos() {
 
   const handleFormSubmit = async (form) => {
     try {
+      console.log(form)
       if (editAluno) {
         await api.put(`/alunos/${editAluno.id}`, form); 
         toast.success('Aluno atualizado com sucesso!');
