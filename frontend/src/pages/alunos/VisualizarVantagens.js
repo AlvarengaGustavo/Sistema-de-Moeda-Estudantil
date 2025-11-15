@@ -1,33 +1,40 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
-import api from "../../services/api";
-import { useAuth } from "../../context/AuthContext";
+import React, { useState, useEffect } from "react";
+import api from "../../services/api"; // O seu 'services/api.js'
+import { useAuth } from "../../context/AuthContext"; // O nosso AuthContext
+import emailjs from "@emailjs/browser"; // [NOVO] Importar o EmailJS
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Button, IconButton, CircularProgress, Dialog, DialogTitle,
   DialogActions, Typography, Box, Alert
 } from "@mui/material";
 import { toast } from "react-toastify";
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Ícone para "Resgatar"
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+
+const generateRedemptionCode = (length = 6) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 
 export default function VisualizarVantagens() {
   const [vantagens, setVantagens] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Para o diálogo de confirmação de resgate
-  const [resgateItem, setResgateItem] = useState(null); // (vantagem a ser resgatada)
+  const [resgateItem, setResgateItem] = useState(null);
   const [resgateDialogOpen, setResgateDialogOpen] = useState(false);
   const [loadingResgate, setLoadingResgate] = useState(false);
 
-  // Pega o 'user' (para o saldo) e a função 'updateUser' do AuthContext
   const { user, updateUser } = useAuth();
 
   const fetchVantagens = async () => {
     setLoading(true);
     try {
-      // Endpoint para o aluno ver as vantagens
-      // (Assumindo que /vantagens é público ou /vantagens/aluno)
-      const res = await api.get("/vantagens"); // Agora usa o mock
+      const res = await api.get("/vantagens");
       setVantagens(res.data);
     } catch (err) {
       toast.error("Erro ao carregar vantagens");
@@ -39,7 +46,6 @@ export default function VisualizarVantagens() {
     fetchVantagens();
   }, []);
 
-  // Abre o diálogo de confirmação
   const handleResgatar = (vantagem) => {
     if (user.saldoMoedas < vantagem.precoMoedas) {
       toast.error("Saldo insuficiente para resgatar esta vantagem.");
@@ -49,29 +55,62 @@ export default function VisualizarVantagens() {
     setResgateDialogOpen(true);
   };
 
+  /**
+   * [NOVO] Função de envio de e-mail (adaptada do seu EnviarMoedas.jsx)
+   */
+  const sendRedemptionEmail = (vantagem, aluno, codigo) => {
+    try {
+      const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_RESGATE_ID;
+      const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_RESGATE;
+      const userId = process.env.REACT_APP_EMAILJS_USER_RESGATE_ID;
+
+      if (serviceId && templateId && userId) {
+        // Parâmetros para o seu novo template de resgate
+        const templateParams = {
+          aluno_name: aluno.nome,
+          aluno_email: aluno.email,
+          vantagem_titulo: vantagem.titulo,
+          vantagem_preco: String(vantagem.precoMoedas),
+          codigo_resgate: codigo, // O código gerado!
+          data: new Date().toLocaleString(),
+        };
+
+        emailjs.send(serviceId, templateId, templateParams, userId)
+          .then(() => {
+            // toast.success("E-mail de resgate enviado!");
+          })
+          .catch((err) => {
+            console.error("Erro ao enviar email de resgate", err);
+            toast.warn("Vantagem resgatada, mas falha ao enviar o e-mail.");
+          });
+      } else {
+        console.warn("EmailJS (Resgate) não configurado. Saltando envio de e-mail.");
+        toast.info("Resgate efetuado (envio de e-mail não configurado).");
+      }
+    } catch (emailErr) {
+      console.error("Erro no envio de email de resgate", emailErr);
+    }
+  };
+
   // Confirma e executa o resgate
   const confirmResgate = async () => {
     if (!resgateItem) return;
 
     setLoadingResgate(true);
     try {
-      // Chama o novo endpoint do AlunoController
-      // (O backend sabe qual aluno está logado pelo token)
-      const res = await api.post(`/alunos/resgatar/${resgateItem.id}`); // Agora usa o mock
+      const res = await api.post(`/alunos/resgatar/${resgateItem.id}`);
+      const alunoAtualizado = res.data;
       
-      // O endpoint retorna o Aluno atualizado
-      const alunoAtualizado = res.data; 
-      
-      // Atualiza o 'user' no AuthContext (e localStorage) com o novo saldo
-      // Usamos o 'updateUser' do AuthContext
+      // Atualiza o saldo no AuthContext
       updateUser({ ...user, saldoMoedas: alunoAtualizado.saldoMoedas });
 
       toast.success("Vantagem resgatada com sucesso!");
-      // (Opcional) Atualizar a lista de vantagens, caso haja limite de stock
-      // fetchVantagens(); 
-
+      
+      // --- [LÓGICA DE E-MAIL ADICIONADA] ---
+      // 1. Gerar o código
+      const codigo = generateRedemptionCode();
+      sendRedemptionEmail(resgateItem, user, codigo);
     } catch (err) {
-      // O 'BusinessException' (Saldo Insuficiente) do backend cairá aqui (400)
       toast.error(err.response?.data?.message || "Erro ao resgatar vantagem");
     }
     setLoadingResgate(false);
@@ -85,7 +124,6 @@ export default function VisualizarVantagens() {
         Loja de Vantagens
       </Typography>
       
-      {/* Mostra o saldo atual do aluno */}
       <Alert 
         icon={<AccountBalanceWalletIcon fontSize="inherit" />} 
         severity="info" 
@@ -129,14 +167,13 @@ export default function VisualizarVantagens() {
                       {v.precoMoedas}
                     </Typography>
                   </TableCell>
-                  <TableCell>{v.empresaNome}</TableCell>
+                  <TableCell>{v.empresaNome || (v.empresaParceira ? v.empresaParceira.nome : 'N/A')}</TableCell>
                   <TableCell>
                     <Button
                       variant="contained"
                       color="primary"
                       startIcon={<ShoppingCartIcon />}
                       onClick={() => handleResgatar(v)}
-                      // Desabilita se o aluno não tiver saldo
                       disabled={user.saldoMoedas < v.precoMoedas}
                     >
                       Resgatar
