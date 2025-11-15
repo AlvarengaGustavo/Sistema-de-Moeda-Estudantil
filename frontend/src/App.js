@@ -73,7 +73,7 @@ const HomeRedirector = () => {
 
   switch (user.role) {
     case 'ALUNO':
-      return <Navigate to="/extrato-aluno" replace />;
+      return <Navigate to="/visualizar-vantagens" replace />;
     case 'PROFESSOR':
       return <Navigate to="/enviar-moedas" replace />;
     case 'EMPRESA':

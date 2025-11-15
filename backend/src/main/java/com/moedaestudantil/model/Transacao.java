@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 public class Transacao {
 
   public enum TipoTransacao {
-    ENVIO, // envio de moedas do professor para o aluno
-    TROCA // troca de vantagens (futuro)
+    ENVIO,
+    TROCA,
+    RESGATE 
   }
 
   @Id
@@ -19,13 +20,20 @@ public class Transacao {
   @Column(nullable = false)
   private LocalDateTime dataHora;
 
-  @ManyToOne(optional = false)
+  // [ALTERADO] Tornamos o professor opcional
+  @ManyToOne(optional = true) 
   @JoinColumn(name = "professor_id")
   private Professor professor;
 
-  @ManyToOne(optional = false)
+  // O Aluno ainda é obrigatório
+  @ManyToOne(optional = false) 
   @JoinColumn(name = "aluno_id")
   private Aluno aluno;
+
+  // [NOVO] Campo para rastrear a vantagem (opcional)
+  @ManyToOne(optional = true)
+  @JoinColumn(name = "vantagem_id")
+  private Vantagem vantagem;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -40,6 +48,7 @@ public class Transacao {
   public Transacao() {
   }
 
+  // Construtor original (para Envios do Professor)
   public Transacao(LocalDateTime dataHora, Professor professor, Aluno aluno, TipoTransacao tipo, Integer valor,
       String mensagem) {
     this.dataHora = dataHora;
@@ -49,7 +58,21 @@ public class Transacao {
     this.valor = valor;
     this.mensagem = mensagem;
   }
+  
+  // [NOVO] Construtor para Resgate de Vantagem (sem professor)
+  public Transacao(LocalDateTime dataHora, Aluno aluno, Vantagem vantagem, TipoTransacao tipo, Integer valor,
+      String mensagem) {
+    this.dataHora = dataHora;
+    this.aluno = aluno;
+    this.vantagem = vantagem;
+    this.tipo = tipo;
+    this.valor = valor;
+    this.mensagem = mensagem;
+    this.professor = null; // Garante que é nulo
+  }
 
+  // --- Getters e Setters ---
+  
   public Long getId() {
     return id;
   }
@@ -80,6 +103,15 @@ public class Transacao {
 
   public void setAluno(Aluno aluno) {
     this.aluno = aluno;
+  }
+
+  // Getter/Setter para Vantagem
+  public Vantagem getVantagem() {
+    return vantagem;
+  }
+
+  public void setVantagem(Vantagem vantagem) {
+    this.vantagem = vantagem;
   }
 
   public TipoTransacao getTipo() {

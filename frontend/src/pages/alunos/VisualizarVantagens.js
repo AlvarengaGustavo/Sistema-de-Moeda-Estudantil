@@ -1,35 +1,33 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import api from "../../services/api";
-import VantagemForm from "../../components/VantagemForm";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import CircularProgress from "@mui/material/CircularProgress";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogActions from "@mui/material/DialogActions";
+import { useAuth } from "../../context/AuthContext";
+import {
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Button, IconButton, CircularProgress, Dialog, DialogTitle,
+  DialogActions, Typography, Box, Alert
+} from "@mui/material";
 import { toast } from "react-toastify";
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Ícone para "Resgatar"
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
-export default function GerenciarVantagens() {
+export default function VisualizarVantagens() {
   const [vantagens, setVantagens] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [deleteId, setDeleteId] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Para o diálogo de confirmação de resgate
+  const [resgateItem, setResgateItem] = useState(null); // (vantagem a ser resgatada)
+  const [resgateDialogOpen, setResgateDialogOpen] = useState(false);
+  const [loadingResgate, setLoadingResgate] = useState(false);
+
+  // Pega o 'user' (para o saldo) e a função 'updateUser' do AuthContext
+  const { user, updateUser } = useAuth();
 
   const fetchVantagens = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/vantagens");
+      // Endpoint para o aluno ver as vantagens
+      // (Assumindo que /vantagens é público ou /vantagens/aluno)
+      const res = await api.get("/vantagens"); // Agora usa o mock
       setVantagens(res.data);
     } catch (err) {
       toast.error("Erro ao carregar vantagens");
@@ -41,60 +39,63 @@ export default function GerenciarVantagens() {
     fetchVantagens();
   }, []);
 
-  const handleAdd = () => {
-    setEditItem(null);
-    setModalOpen(true);
-  };
-
-  const handleEdit = (item) => {
-    setEditItem(item);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id) => {
-    setDeleteId(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await api.delete(`/vantagens/${deleteId}`);
-      toast.success("Vantagem excluída com sucesso!");
-      fetchVantagens();
-    } catch (err) {
-      toast.error("Erro ao excluir vantagem");
+  // Abre o diálogo de confirmação
+  const handleResgatar = (vantagem) => {
+    if (user.saldoMoedas < vantagem.precoMoedas) {
+      toast.error("Saldo insuficiente para resgatar esta vantagem.");
+      return;
     }
-    setDeleteDialogOpen(false);
-    setDeleteId(null);
+    setResgateItem(vantagem);
+    setResgateDialogOpen(true);
   };
 
-  const handleFormSubmit = async (form) => {
+  // Confirma e executa o resgate
+  const confirmResgate = async () => {
+    if (!resgateItem) return;
+
+    setLoadingResgate(true);
     try {
-      if (editItem) {
-        await api.put(`/vantagens/${editItem.id}`, form);
-        toast.success("Vantagem atualizada com sucesso!");
-      } else {
-        await api.post("/vantagens", form);
-        toast.success("Vantagem cadastrada com sucesso!");
-      }
-      setModalOpen(false);
-      fetchVantagens();
+      // Chama o novo endpoint do AlunoController
+      // (O backend sabe qual aluno está logado pelo token)
+      const res = await api.post(`/alunos/resgatar/${resgateItem.id}`); // Agora usa o mock
+      
+      // O endpoint retorna o Aluno atualizado
+      const alunoAtualizado = res.data; 
+      
+      // Atualiza o 'user' no AuthContext (e localStorage) com o novo saldo
+      // Usamos o 'updateUser' do AuthContext
+      updateUser({ ...user, saldoMoedas: alunoAtualizado.saldoMoedas });
+
+      toast.success("Vantagem resgatada com sucesso!");
+      // (Opcional) Atualizar a lista de vantagens, caso haja limite de stock
+      // fetchVantagens(); 
+
     } catch (err) {
-      toast.error(err.response?.data?.message || "Erro ao salvar vantagem");
+      // O 'BusinessException' (Saldo Insuficiente) do backend cairá aqui (400)
+      toast.error(err.response?.data?.message || "Erro ao resgatar vantagem");
     }
+    setLoadingResgate(false);
+    setResgateDialogOpen(false);
+    setResgateItem(null);
   };
 
   return (
     <div className="container">
-      <h2>Gerenciar Vantagens</h2>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleAdd}
-        style={{ marginBottom: 16 }}
+      <Typography variant="h4" gutterBottom>
+        Loja de Vantagens
+      </Typography>
+      
+      {/* Mostra o saldo atual do aluno */}
+      <Alert 
+        icon={<AccountBalanceWalletIcon fontSize="inherit" />} 
+        severity="info" 
+        sx={{ mb: 3, maxWidth: 'sm' }}
       >
-        Adicionar Nova Vantagem
-      </Button>
+        <Typography variant="h6">
+          Seu Saldo: {user.saldoMoedas} moedas
+        </Typography>
+      </Alert>
+
       {loading ? (
         <CircularProgress />
       ) : (
@@ -102,18 +103,16 @@ export default function GerenciarVantagens() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Título</TableCell>
+                <TableCell>Vantagem</TableCell>
                 <TableCell>Descrição</TableCell>
                 <TableCell>Preço (moedas)</TableCell>
                 <TableCell>Empresa</TableCell>
-                <TableCell>Ações</TableCell>
+                <TableCell>Ação</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {vantagens.map((v) => (
                 <TableRow key={v.id}>
-                  <TableCell>{v.id}</TableCell>
                   <TableCell>{v.titulo}</TableCell>
                   <TableCell>
                     {v.descricao
@@ -122,18 +121,26 @@ export default function GerenciarVantagens() {
                         : v.descricao
                       : ""}
                   </TableCell>
-                  <TableCell>{v.precoMoedas}</TableCell>
+                  <TableCell>
+                    <Typography 
+                      color={user.saldoMoedas < v.precoMoedas ? 'error' : 'primary'}
+                      fontWeight="bold"
+                    >
+                      {v.precoMoedas}
+                    </Typography>
+                  </TableCell>
                   <TableCell>{v.empresaNome}</TableCell>
                   <TableCell>
-                    <IconButton onClick={() => handleEdit(v)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(v.id)}
-                      color="error"
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<ShoppingCartIcon />}
+                      onClick={() => handleResgatar(v)}
+                      // Desabilita se o aluno não tiver saldo
+                      disabled={user.saldoMoedas < v.precoMoedas}
                     >
-                      <DeleteIcon />
-                    </IconButton>
+                      Resgatar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -142,24 +149,37 @@ export default function GerenciarVantagens() {
         </TableContainer>
       )}
 
-      <VantagemForm
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editItem}
-      />
-
+      {/* Diálogo de Confirmação de Resgate */}
       <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        open={resgateDialogOpen}
+        onClose={() => setResgateDialogOpen(false)}
       >
         <DialogTitle>
-          Você tem certeza que deseja excluir esta vantagem?
+          Confirmar Resgate?
         </DialogTitle>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Excluir
+        <Box sx={{ p: 2, paddingLeft: 3, paddingRight: 3 }}>
+           <Typography>
+             Vantagem: <strong>{resgateItem?.titulo}</strong>
+           </Typography>
+           <Typography>
+             Custo: <strong>{resgateItem?.precoMoedas} moedas</strong>
+           </Typography>
+           <Typography sx={{ mt: 1 }}>
+             Seu saldo após o resgate será: 
+             <strong> {user.saldoMoedas - (resgateItem?.precoMoedas || 0)} moedas</strong>
+           </Typography>
+        </Box>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setResgateDialogOpen(false)} disabled={loadingResgate}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmResgate} 
+            color="primary" 
+            variant="contained"
+            disabled={loadingResgate}
+          >
+            {loadingResgate ? <CircularProgress size={24} /> : "Confirmar"}
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,94 +1,118 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import api from '../services/api';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('authToken') || null);
-  const [isLoading, setIsLoading] = useState(true); 
+  const [isLoading, setIsLoading] = useState(true); // Começa true para verificar o storage
   const navigate = useNavigate();
 
+  // Tenta carregar o utilizador do localStorage ao iniciar
   useEffect(() => {
-    const storedToken = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('authUser');
-
-    if (storedToken && storedUser) {
+    const loadUserFromStorage = () => {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
-        
-        api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      } catch (e) {
-        console.error("Erro ao parsear usuário do localStorage", e);
-        logout();
+        const token = localStorage.getItem('authToken');
+        const storedUser = localStorage.getItem('authUser');
+        if (token && storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.error("Falha ao carregar utilizador do localStorage", err);
+        setUser(null);
+        localStorage.clear();
       }
-    }
-    setIsLoading(false);
-  }, [navigate]);
+      setIsLoading(false);
+    };
+    loadUserFromStorage();
+  }, []);
 
+  // Função de Login
   const login = async (email, senha) => {
+    setIsLoading(true);
     try {
       const response = await api.post('/auth/login', { email, senha });
+      const { token, user: userData } = response.data;
 
-      const { token: responseToken, user: responseUser } = response.data;
+      // Salva no localStorage
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('authUser', JSON.stringify(userData));
 
-      localStorage.setItem('authToken', responseToken);
-      localStorage.setItem('authUser', JSON.stringify(responseUser));
-
-      api.defaults.headers.common['Authorization'] = `Bearer ${responseToken}`;
-
-      setToken(responseToken);
-      setUser(responseUser);
+      // Atualiza o estado
+      setUser(userData);
       
-      // O redirecionamento com base na role pode ser feito aqui
-      navigate('/'); 
-      
+      // Redireciona para a página 'home' (que depois redireciona pela role)
+      navigate('/home'); 
       return true;
 
-    } catch (error) {
-      console.error("Erro no login:", error.response?.data || error.message);
-      // Retorna a mensagem de erro ou um padrão
-      return error.response?.data?.message || "Email ou senha inválidos";
+    } catch (err) {
+      console.error("Erro no login:", err);
+      localStorage.clear();
+      setUser(null);
+      // Retorna a mensagem de erro do backend (ex: "Email ou senha inválidos")
+      return err.response?.data?.message || 'Email ou senha inválidos.';
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Função de Logout
   const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
-
-    delete api.defaults.headers.common['Authorization'];
-
-    setToken(null);
+    localStorage.clear();
     setUser(null);
-    
-    navigate('/');
+    navigate('/'); // Redireciona para o login
   };
 
-  const authContextValue = {
-    token,
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    login,
-    logout,
+  /**
+   * [A CORREÇÃO]
+   * Função para ATUALIZAR o utilizador no contexto e no localStorage.
+   * Usada quando o aluno resgata uma vantagem (para atualizar o saldo).
+   */
+  const updateUser = (newUserData) => {
+    try {
+      // Atualiza o estado
+      setUser(newUserData);
+      // Atualiza o localStorage
+      localStorage.setItem('authUser', JSON.stringify(newUserData));
+    } catch (err) {
+      console.error("Falha ao atualizar utilizador:", err);
+    }
   };
+
+  /**
+   * [A CORREÇÃO]
+   * O valor do contexto DEVE incluir o updateUser para que 
+   * a página VisualizarVantagens o possa utilizar.
+   */
+  const authContextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      updateUser // <-- A CORREÇÃO QUE FALTAVA
+    }),
+    [user, isLoading] // Removido 'navigate' das deps, pois não afeta o valor
+  );
 
   return (
     <AuthContext.Provider value={authContextValue}>
-      {!isLoading && children} {/* Só renderiza o app após verificar o token */}
+      {/* Não renderiza os filhos até a verificação inicial do localStorage estar concluída */}
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };
 
-
+/**
+ * Hook para consumir o contexto
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+  if (context === undefined || context === null) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };

@@ -142,87 +142,87 @@ public class ProfessorService {
         professorRepository.deleteById(id);
     }
 
-    public void enviarMoedas(Long professorId, EnviarMoedasRequestDTO req) {
-        if (req.getValor() == null || req.getValor() <= 0) {
-            throw new IllegalArgumentException("Valor deve ser positivo");
+        public void enviarMoedas(Long professorId, EnviarMoedasRequestDTO req) {
+            if (req.getValor() == null || req.getValor() <= 0) {
+                throw new IllegalArgumentException("Valor deve ser positivo");
+            }
+            if (req.getMotivo() == null || req.getMotivo().isBlank()) {
+                throw new IllegalArgumentException("Motivo é obrigatório");
+            }
+
+            Professor professor = professorRepository.findById(professorId)
+                    .orElseThrow(() -> new IllegalArgumentException("Professor não encontrado"));
+
+            // aplica créditos semestrais pendentes
+            atualizarCotaSemestralSeNecessario(professor);
+
+            Aluno aluno = alunoRepository.findById(req.getAlunoId())
+                    .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+
+            if (professor.getSaldoMoedas() < req.getValor()) {
+                throw new IllegalArgumentException("Saldo insuficiente do professor");
+            }
+
+            // efetiva transferência
+            professor.setSaldoMoedas(professor.getSaldoMoedas() - req.getValor());
+            aluno.setSaldoMoedas(aluno.getSaldoMoedas() + req.getValor());
+            professorRepository.save(professor);
+            alunoRepository.save(aluno);
+
+            Transacao t = new Transacao(
+                    LocalDateTime.now(),
+                    professor,
+                    aluno,
+                    Transacao.TipoTransacao.ENVIO,
+                    req.getValor(),
+                    req.getMotivo());
+            transacaoRepository.save(t);
+
+            // notifica aluno por email
+            String assunto = "Você recebeu moedas!";
+            String corpo = String.format(
+                    "Olá %s,\n\nVocê recebeu %d moedas do professor %s.\nMotivo: %s\n\nSaldo atual: %d\n\nAtenciosamente,\nSistema de Moeda Estudantil",
+                    aluno.getNome(), req.getValor(), professor.getNome(), req.getMotivo(), aluno.getSaldoMoedas());
+            emailService.enviarEmail(aluno.getEmail(), assunto, corpo);
         }
-        if (req.getMotivo() == null || req.getMotivo().isBlank()) {
-            throw new IllegalArgumentException("Motivo é obrigatório");
+
+        public ExtratoResponseDTO extratoProfessor(Long professorId) {
+            Professor p = professorRepository.findById(professorId)
+                    .orElseThrow(() -> new IllegalArgumentException("Professor não encontrado"));
+            // atualiza cota antes de exibir extrato/saldo
+            atualizarCotaSemestralSeNecessario(p);
+            List<TransacaoResponseDTO> transacoes = transacaoRepository.findByProfessorIdOrderByDataHoraDesc(professorId)
+                    .stream().map(TransacaoResponseDTO::new).collect(Collectors.toList());
+            return new ExtratoResponseDTO(p.getSaldoMoedas(), transacoes);
         }
 
-        Professor professor = professorRepository.findById(professorId)
-                .orElseThrow(() -> new IllegalArgumentException("Professor não encontrado"));
-
-        // aplica créditos semestrais pendentes
-        atualizarCotaSemestralSeNecessario(professor);
-
-        Aluno aluno = alunoRepository.findById(req.getAlunoId())
-                .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
-
-        if (professor.getSaldoMoedas() < req.getValor()) {
-            throw new IllegalArgumentException("Saldo insuficiente do professor");
+        public ExtratoResponseDTO extratoAluno(Long alunoId) {
+            Aluno a = alunoRepository.findById(alunoId)
+                    .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
+            List<TransacaoResponseDTO> transacoes = transacaoRepository.findByAlunoIdOrderByDataHoraDesc(alunoId)
+                    .stream().map(TransacaoResponseDTO::new).collect(Collectors.toList());
+            return new ExtratoResponseDTO(a.getSaldoMoedas(), transacoes);
         }
 
-        // efetiva transferência
-        professor.setSaldoMoedas(professor.getSaldoMoedas() - req.getValor());
-        aluno.setSaldoMoedas(aluno.getSaldoMoedas() + req.getValor());
-        professorRepository.save(professor);
-        alunoRepository.save(aluno);
+        private void atualizarCotaSemestralSeNecessario(Professor p) {
+            LocalDate hoje = LocalDate.now();
+            int anoAtual = hoje.getYear();
+            int semestreAtual = (hoje.getMonthValue() <= 6) ? 1 : 2;
 
-        Transacao t = new Transacao(
-                LocalDateTime.now(),
-                professor,
-                aluno,
-                Transacao.TipoTransacao.ENVIO,
-                req.getValor(),
-                req.getMotivo());
-        transacaoRepository.save(t);
+            Integer anoUlt = p.getUltimaCotaAno();
+            Integer semUlt = p.getUltimaCotaSemestre();
 
-        // notifica aluno por email
-        String assunto = "Você recebeu moedas!";
-        String corpo = String.format(
-                "Olá %s,\n\nVocê recebeu %d moedas do professor %s.\nMotivo: %s\n\nSaldo atual: %d\n\nAtenciosamente,\nSistema de Moeda Estudantil",
-                aluno.getNome(), req.getValor(), professor.getNome(), req.getMotivo(), aluno.getSaldoMoedas());
-        emailService.enviarEmail(aluno.getEmail(), assunto, corpo);
-    }
+            int idxAtual = anoAtual * 2 + semestreAtual;
+            int idxUlt = (anoUlt == null || semUlt == null) ? (idxAtual - 1) : (anoUlt * 2 + semUlt);
 
-    public ExtratoResponseDTO extratoProfessor(Long professorId) {
-        Professor p = professorRepository.findById(professorId)
-                .orElseThrow(() -> new IllegalArgumentException("Professor não encontrado"));
-        // atualiza cota antes de exibir extrato/saldo
-        atualizarCotaSemestralSeNecessario(p);
-        List<TransacaoResponseDTO> transacoes = transacaoRepository.findByProfessorIdOrderByDataHoraDesc(professorId)
-                .stream().map(TransacaoResponseDTO::new).collect(Collectors.toList());
-        return new ExtratoResponseDTO(p.getSaldoMoedas(), transacoes);
-    }
-
-    public ExtratoResponseDTO extratoAluno(Long alunoId) {
-        Aluno a = alunoRepository.findById(alunoId)
-                .orElseThrow(() -> new IllegalArgumentException("Aluno não encontrado"));
-        List<TransacaoResponseDTO> transacoes = transacaoRepository.findByAlunoIdOrderByDataHoraDesc(alunoId)
-                .stream().map(TransacaoResponseDTO::new).collect(Collectors.toList());
-        return new ExtratoResponseDTO(a.getSaldoMoedas(), transacoes);
-    }
-
-    private void atualizarCotaSemestralSeNecessario(Professor p) {
-        LocalDate hoje = LocalDate.now();
-        int anoAtual = hoje.getYear();
-        int semestreAtual = (hoje.getMonthValue() <= 6) ? 1 : 2;
-
-        Integer anoUlt = p.getUltimaCotaAno();
-        Integer semUlt = p.getUltimaCotaSemestre();
-
-        int idxAtual = anoAtual * 2 + semestreAtual;
-        int idxUlt = (anoUlt == null || semUlt == null) ? (idxAtual - 1) : (anoUlt * 2 + semUlt);
-
-        int diferenca = idxAtual - idxUlt;
-        if (diferenca > 0) {
-            // Credita 1000 por semestre pendente
-            int credito = 1000 * diferenca;
-            p.setSaldoMoedas(p.getSaldoMoedas() + credito);
-            p.setUltimaCotaAno(anoAtual);
-            p.setUltimaCotaSemestre(semestreAtual);
-            professorRepository.save(p);
+            int diferenca = idxAtual - idxUlt;
+            if (diferenca > 0) {
+                // Credita 1000 por semestre pendente
+                int credito = 1000 * diferenca;
+                p.setSaldoMoedas(p.getSaldoMoedas() + credito);
+                p.setUltimaCotaAno(anoAtual);
+                p.setUltimaCotaSemestre(semestreAtual);
+                professorRepository.save(p);
+            }
         }
     }
-}

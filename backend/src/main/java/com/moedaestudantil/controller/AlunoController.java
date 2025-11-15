@@ -2,6 +2,7 @@ package com.moedaestudantil.controller;
 
 import com.moedaestudantil.dto.AlunoRequestDTO;
 import com.moedaestudantil.dto.AlunoResponseDTO;
+import com.moedaestudantil.model.Aluno;
 import com.moedaestudantil.service.AlunoService;
 
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal; 
 
 import javax.validation.Valid;
 
@@ -51,5 +53,18 @@ public class AlunoController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         alunoService.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/resgatar/{vantagemId}")
+    public ResponseEntity<Aluno> resgatarVantagem(
+            @PathVariable Long vantagemId,
+            Principal principal) // 2. Parâmetro alterado para 'Principal'
+    {
+        // 3. Pega o email do usuário a partir do token (Correto e Seguro)
+        String email = principal.getName(); // 4. Método alterado para 'principal.getName()'
+        
+        Aluno alunoAtualizado = alunoService.resgatarVantagem(email, vantagemId);
+        
+        return ResponseEntity.ok(alunoAtualizado);
     }
 }

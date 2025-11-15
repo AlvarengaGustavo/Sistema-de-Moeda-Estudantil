@@ -1,104 +1,85 @@
 package com.moedaestudantil.dto;
 
 import com.moedaestudantil.model.Transacao;
-
 import java.time.LocalDateTime;
 
+/**
+ * DTO para exibir transações no extrato (Aluno ou Professor).
+ */
 public class TransacaoResponseDTO {
-  private Long id;
-  private LocalDateTime dataHora;
-  private Long professorId;
-  private String professorNome;
-  private Long alunoId;
-  private String alunoNome;
-  private String tipo;
-  private Integer valor;
-  private String mensagem;
 
-  public TransacaoResponseDTO() {
-  }
+    private Long id;
+    private LocalDateTime dataHora;
+    private String tipo;
+    private Integer valor;
+    private String mensagem;
+    
+    // Aluno (Sempre obrigatório)
+    private Long alunoId;
+    private String alunoNome;
 
-  public TransacaoResponseDTO(Transacao t) {
-    this.id = t.getId();
-    this.dataHora = t.getDataHora();
-    this.professorId = t.getProfessor().getId();
-    this.professorNome = t.getProfessor().getNome();
-    this.alunoId = t.getAluno().getId();
-    this.alunoNome = t.getAluno().getNome();
-    this.tipo = t.getTipo().name();
-    this.valor = t.getValor();
-    this.mensagem = t.getMensagem();
-  }
+    // Professor (Opcional, apenas para ENVIO)
+    private Long professorId;
+    private String professorNome;
 
-  public Long getId() {
-    return id;
-  }
+    // Vantagem (Opcional, apenas para RESGATE)
+    private String vantagemDescricao; // Usaremos a 'mensagem' da transação aqui
+    private String empresaNome; // Nome da empresa (se for resgate)
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    /**
+     * Construtor que recebe a Entidade Transacao e a converte para DTO.
+     */
+    public TransacaoResponseDTO(Transacao t) {
+        this.id = t.getId();
+        this.dataHora = t.getDataHora();
+        this.tipo = t.getTipo().name();
+        this.valor = t.getValor();
+        this.mensagem = t.getMensagem();
 
-  public LocalDateTime getDataHora() {
-    return dataHora;
-  }
+        // Aluno (Sempre existe, conforme o modelo)
+        this.alunoId = t.getAluno().getId();
+        this.alunoNome = t.getAluno().getNome();
 
-  public void setDataHora(LocalDateTime dataHora) {
-    this.dataHora = dataHora;
-  }
+        // --- INÍCIO DA CORREÇÃO ---
+        // O erro (NullPointerException) acontecia aqui (Linha 24, segundo o seu log).
+        // Agora, verificamos o tipo de transação antes de aceder aos campos.
 
-  public Long getProfessorId() {
-    return professorId;
-  }
+        if (t.getTipo() == Transacao.TipoTransacao.ENVIO && t.getProfessor() != null) {
+            // Se for ENVIO, a origem/destino é o Professor
+            this.professorId = t.getProfessor().getId();
+            this.professorNome = t.getProfessor().getNome();
+            this.empresaNome = null; // Não é um resgate
+        
+        } else if (t.getTipo() == Transacao.TipoTransacao.RESGATE && t.getVantagem() != null) {
+            // Se for RESGATE, a origem/destino é a Vantagem/Empresa
+            this.professorId = null; // Professor não participa
+            this.professorNome = null; 
+            
+            // Tenta obter o nome da empresa
+            if (t.getVantagem().getEmpresaParceira() != null) {
+                this.empresaNome = t.getVantagem().getEmpresaParceira().getNome();
+            } else {
+                this.empresaNome = "Vantagem"; // Fallback
+            }
+        
+        } else {
+            // Tipo 'TROCA' ou dados inconsistentes
+            this.professorId = null;
+            this.professorNome = null;
+            this.empresaNome = "N/A";
+        }
+        // --- FIM DA CORREÇÃO ---
+    }
 
-  public void setProfessorId(Long professorId) {
-    this.professorId = professorId;
-  }
-
-  public String getProfessorNome() {
-    return professorNome;
-  }
-
-  public void setProfessorNome(String professorNome) {
-    this.professorNome = professorNome;
-  }
-
-  public Long getAlunoId() {
-    return alunoId;
-  }
-
-  public void setAlunoId(Long alunoId) {
-    this.alunoId = alunoId;
-  }
-
-  public String getAlunoNome() {
-    return alunoNome;
-  }
-
-  public void setAlunoNome(String alunoNome) {
-    this.alunoNome = alunoNome;
-  }
-
-  public String getTipo() {
-    return tipo;
-  }
-
-  public void setTipo(String tipo) {
-    this.tipo = tipo;
-  }
-
-  public Integer getValor() {
-    return valor;
-  }
-
-  public void setValor(Integer valor) {
-    this.valor = valor;
-  }
-
-  public String getMensagem() {
-    return mensagem;
-  }
-
-  public void setMensagem(String mensagem) {
-    this.mensagem = mensagem;
-  }
+    // Getters
+    public Long getId() { return id; }
+    public LocalDateTime getDataHora() { return dataHora; }
+    public String getTipo() { return tipo; }
+    public Integer getValor() { return valor; }
+    public String getMensagem() { return mensagem; }
+    public Long getAlunoId() { return alunoId; }
+    public String getAlunoNome() { return alunoNome; }
+    public Long getProfessorId() { return professorId; }
+    public String getProfessorNome() { return professorNome; }
+    public String getEmpresaNome() { return empresaNome; }
 }

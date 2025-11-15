@@ -4,8 +4,13 @@ import com.moedaestudantil.dto.AlunoRequestDTO;
 import com.moedaestudantil.dto.AlunoResponseDTO;
 import com.moedaestudantil.model.Aluno;
 import com.moedaestudantil.model.Instituicao;
+import com.moedaestudantil.model.Transacao;
+import com.moedaestudantil.model.Vantagem;
+
 import com.moedaestudantil.repository.AlunoRepository;
 import com.moedaestudantil.repository.InstituicaoRepository;
+import com.moedaestudantil.repository.VantagemRepository;
+import com.moedaestudantil.repository.TransacaoRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.moedaestudantil.exception.BusinessException;
+import com.moedaestudantil.exception.ResourceNotFoundException;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,14 +32,18 @@ import java.util.stream.Collectors;
 public class AlunoService {
 
     private final AlunoRepository alunoRepository;
+    private final VantagemRepository vantagemRepository;
+    private final TransacaoRepository transacaoRepository;  
     private final PasswordEncoder passwordEncoder;
     private final InstituicaoRepository instituicaoRepository;
 
-    public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder,
+    public AlunoService(AlunoRepository alunoRepository, PasswordEncoder passwordEncoder, VantagemRepository vantagemRepository, TransacaoRepository transacaoRepository,
             InstituicaoRepository instituicaoRepository) {
         this.alunoRepository = alunoRepository;
         this.passwordEncoder = passwordEncoder;
         this.instituicaoRepository = instituicaoRepository;
+        this.vantagemRepository = vantagemRepository;
+        this.transacaoRepository = transacaoRepository;
     }
 
     public AlunoResponseDTO criarAluno(AlunoRequestDTO dto) {
@@ -182,5 +195,45 @@ public class AlunoService {
         Page<AlunoResponseDTO> paginaDeDTOs = paginaDeAlunos.map(AlunoResponseDTO::new);
 
         return paginaDeDTOs;
+    }
+
+    public Aluno resgatarVantagem(String email, Long vantagemId) {
+        // 1. Buscar as entidades
+        // A lógica de busca do aluno foi movida para cá (do Controller)
+        Aluno aluno = alunoRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Aluno não encontrado com email: " + email));
+
+        Vantagem vantagem = vantagemRepository.findById(vantagemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vantagem não encontrada"));
+
+        // 2. Validar a regra de negócio (Saldo)
+        if (aluno.getSaldoMoedas() < vantagem.getPrecoMoedas()) {
+            throw new BusinessException("Saldo insuficiente para resgatar esta vantagem.");
+        }
+
+        // 3. Debitar o saldo do aluno
+        aluno.setSaldoMoedas(aluno.getSaldoMoedas() - vantagem.getPrecoMoedas());
+        Aluno alunoAtualizado = alunoRepository.save(aluno);
+
+        // 4. Criar o registro no histórico (Usando 'Transacao' e o modelo ATUALIZADO)
+        Transacao transacao = new Transacao();
+        transacao.setAluno(alunoAtualizado);
+        transacao.setVantagem(vantagem); // <-- [CORRIGIDO] Usando o novo campo
+        transacao.setProfessor(null); // <-- [CORRIGIDO] Definindo como nulo (agora é opcional)
+
+        // 8. Usando o Enum 'TipoTransacao' que vi no seu ProfessorService
+        transacao.setTipo(Transacao.TipoTransacao.RESGATE); // <-- [CORRIGIDO] Usando o novo enum
+
+        transacao.setValor(-vantagem.getPrecoMoedas()); // Valor negativo (saída)
+        transacao.setMensagem("Resgate: " + vantagem.getTitulo()); // <-- [CORRIGIDO] Usando 'setMensagem'
+
+        // 9. Adicionando a data/hora (como vi no seu ProfessorService)
+        transacao.setDataHora(LocalDateTime.now());
+
+        // 10. Usando o repositório correto
+        transacaoRepository.save(transacao);
+
+        // 5. Retornar o aluno atualizado
+        return alunoAtualizado;
     }
 }

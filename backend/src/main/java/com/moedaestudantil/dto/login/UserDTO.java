@@ -11,6 +11,7 @@ public class UserDTO {
     private Long id;
     private String nome;
     private String email;
+    private int saldoMoedas = 0;
     private UserRole role;
 
     // Construtores sobrecarregados para cada tipo de entidade
@@ -19,6 +20,7 @@ public class UserDTO {
         this.id = aluno.getId();
         this.nome = aluno.getNome();
         this.email = aluno.getEmail();
+        this.saldoMoedas = aluno.getSaldoMoedas();
         this.role = UserRole.ALUNO;
     }
 
@@ -47,5 +49,6 @@ public class UserDTO {
     public Long getId() { return id; }
     public String getNome() { return nome; }
     public String getEmail() { return email; }
+    public int getSaldoMoedas() { return saldoMoedas;}
     public UserRole getRole() { return role; }
 }
