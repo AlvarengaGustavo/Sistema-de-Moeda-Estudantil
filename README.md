@@ -66,37 +66,107 @@ As entregas incluem:
 
 ![WhatsApp Image 2025-11-06 at 16 44 05(1)](https://github.com/user-attachments/assets/d9b2a965-d27a-4e91-b140-f834ddae21aa)
 
-
 ![WhatsApp Image 2025-11-06 at 16 44 05](https://github.com/user-attachments/assets/f7aebe73-27c0-408b-91b8-fa56455cb3cc)
 
 ---
 
 ## Execução
 
-Back-end (Spring Boot): porta 8080
+### Backend (API - NestJS + Prisma)
 
-- H2 Console: `/h2-console` (habilitado por padrão)
-- JPA: `ddl-auto=update`
+- Pré-requisitos: Node.js 20+, Docker, Docker Compose.
+- Configure `.env` em `moeda-estudantil-api` (DATABASE_URL, JWT_SECRET, SMTP, etc.).
 
-Front-end (React): porta 3000
+Passos para rodar localmente:
 
-## Endpoints (Release 2 - Lab04S01)
+1. Subir banco via Docker Compose:
 
-- Professores
+```bash
+cd moeda-estudantil-api
+docker compose -f compose.yml up -d
+```
 
-  - GET `/api/professores` — lista professores (com saldo atualizado por cota semestral)
-  - POST `/api/professores/{professorId}/enviar-moedas` — body `{ alunoId, valor, motivo }`
-  - GET `/api/professores/{professorId}/extrato` — saldo + transações de envio
+2. Instalar deps e preparar Prisma:
 
-- Alunos
-  - GET `/api/alunos` — já existente (paginação)
-  - GET `/api/extratos/alunos/{alunoId}` — saldo + transações de recebimento/troca
+```bash
+npm install
+npx prisma migrate dev
+npx prisma generate
+```
 
-## Modelo de dados (novidades)
+3. Iniciar a API em dev:
 
-- Instituição (`instituicoes`): professores e alunos referenciam uma instituição via chave estrangeira
-- Professor: possui saldo acumulável por semestre (cota de 1000 moedas/semestre)
-- Transação: registra ENVIO (professor -> aluno) e futuramente TROCA
+```bash
+npm run start:dev
+```
+
+Healthcheck: http://localhost:3000/api/health
+
+### Frontend (Vite + React)
+
+- Pré-requisitos: Node.js 20+.
+- Configure `VITE_API_URL` no `.env.local` do app para apontar para a API.
+
+Rodar localmente:
+
+```bash
+cd moeda-estudantil-app
+npm install
+npm run dev
+```
+
+App em: http://localhost:5173
+
+## Endpoints
+
+Base: http://localhost:3000
+
+- GET /health — status da aplicação
+
+Auth (/auth):
+
+- POST /auth/login — login e emissão de JWT
+- GET /auth/me — dados do usuário autenticado
+- POST /auth/update — atualiza perfil autenticado
+
+Users (/users):
+
+- POST /users/student — criar estudante
+- PUT /users/student/:id — atualizar estudante
+- GET /users/student — listar estudantes
+- GET /users/student/:id — detalhar estudante
+- POST /users/company — criar empresa
+- GET /users/company — listar empresas
+- GET /users/company/:id — detalhar empresa
+- PUT /users/company/:id — atualizar empresa
+
+Teachers (/teachers):
+
+- POST /teachers — criar professor
+- GET /teachers — listar professores
+- GET /teachers/:id — detalhar professor
+- PUT /teachers/:id — atualizar professor
+
+Institutions (/institutions):
+
+- GET /institutions — listar instituições
+- GET /institutions/:id — detalhar instituição
+- POST /institutions — criar instituição
+- PUT /institutions/:id — atualizar instituição
+
+Rewards (/rewards):
+
+- POST /rewards/donate — doar moedas
+- GET /rewards/transactions — listar transações
+- POST /rewards/redeem — resgatar recompensa
+- GET /rewards — listar recompensas
+- GET /rewards/institution-students — listar estudantes da instituição
+
+Company Rewards (/company/rewards):
+
+- POST /company/rewards — criar recompensa da empresa
+- PATCH /company/rewards/:id — atualizar recompensa da empresa
+- GET /company/rewards — listar recompensas da empresa
 
 ## Cotas semestrais
 
@@ -106,7 +176,19 @@ Front-end (React): porta 3000
 
 ## Notificações por email
 
-- Ao receber moedas, o aluno é notificado
-- Ambiente de desenvolvimento: envio de email simulado no console (sem SMTP)
+Implementadas no módulo `email` da API (`moeda-estudantil-api/src/email`). O envio usa um provedor SMTP configurável por variáveis de ambiente. Templates residem em `moeda-estudantil-api/src/email/templates` e são renderizados conforme o evento (ex.: aprovação de empresa, confirmação de cadastro, resgate de recompensa). Serviços de domínio (como `company-rewards.service.ts`) disparam emails assíncronos após operações de negócio.
+
+## Publicação
+
+- Frontend: publicado na Vercel.
+- Backend (API) e Banco: executam em contêineres Docker dentro de uma VM.
+- Automação: a Action do GitHub realiza build, migrações Prisma e deploy.
+
+Aplicação publicada: https://moedas.andrejales.com.br
+
+Login administrador (produção):
+
+- Email: admin@email.com
+- Senha: 123456
 
 ---
