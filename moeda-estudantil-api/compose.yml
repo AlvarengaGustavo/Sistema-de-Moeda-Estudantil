@@ -1,0 +1,27 @@
+services:
+  moeda-estudantil-api:
+    build: .
+    container_name: moeda-estudantil-api
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    depends_on:
+      - moeda-estudantil-db
+
+  moeda-estudantil-db:
+    image: postgres
+    container_name: moeda-estudantil-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    ports:
+      - '5432:5432'
+
+volumes:
+  pgdata:
